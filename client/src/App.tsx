@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import {
   RefreshCw, Sparkles, Eye, Send, BookOpen, Loader2, Award,
   CheckCircle2, AlertTriangle, ThumbsUp, Minus, ThumbsDown,
+  Bookmark, BookmarkCheck, Trash2, ArrowLeft,
 } from "lucide-react";
 import {
   getTopics, getQuestions, generateQuestion, gradeAnswer, saveProgress,
-  type Topic, type Question, type GradeResult, type SelfRating,
+  getSaved, saveQuestion, deleteSaved,
+  type Topic, type Question, type GradeResult, type SelfRating, type SavedQuestion,
 } from "./api";
 
 // ── 디자인 토큰 ──
@@ -34,6 +36,11 @@ const DIFFICULTIES: { key: Difficulty; color: string }[] = [
   { key: "중간", color: C.amber },
   { key: "어려움", color: C.red },
 ];
+// 저장 목록 난이도 필터 (전체 포함)
+const SAVED_FILTERS: { key: "전체" | Difficulty; color: string }[] = [
+  { key: "전체", color: C.text },
+  ...DIFFICULTIES,
+];
 
 type Loading = "gen" | "grade" | null;
 // idle: 답 작성 중 / revealed: 모범답안 펼침 / graded: AI 채점 결과
@@ -60,6 +67,43 @@ export default function App() {
     () => bank.filter((q) => q.difficulty === difficulty),
     [bank, difficulty]
   );
+
+  // 저장한 질문 (복습용)
+  const [view, setView] = useState<"practice" | "saved">("practice");
+  const [saved, setSaved] = useState<SavedQuestion[]>([]);
+  const savedIds = useMemo(() => new Set(saved.map((s) => s.id)), [saved]);
+
+  useEffect(() => {
+    getSaved().then(setSaved).catch(() => {});
+  }, []);
+
+  // 현재 질문 저장/해제 토글
+  async function toggleSave() {
+    if (!question) return;
+    try {
+      const next = savedIds.has(question.id)
+        ? await deleteSaved(question.id)
+        : await saveQuestion({
+            topic,
+            id: question.id,
+            difficulty: question.difficulty,
+            text: question.text,
+            modelAnswer: question.modelAnswer,
+          });
+      setSaved(next);
+    } catch (e: any) {
+      setError(`저장 처리에 실패했어요: ${e.message}`);
+    }
+  }
+
+  // 저장 목록에서 삭제
+  async function removeFromSaved(id: string) {
+    try {
+      setSaved(await deleteSaved(id));
+    } catch (e: any) {
+      setError(`삭제에 실패했어요: ${e.message}`);
+    }
+  }
 
   const activeColor = TOPIC_COLORS[topic] ?? C.amber;
   const activeLabel = useMemo(
@@ -170,12 +214,25 @@ export default function App() {
             </div>
             <h1 style={{ fontSize: 28, fontWeight: 700, marginTop: 4 }}>기술 스택 학습</h1>
           </div>
-          <div style={{ textAlign: "right", fontFamily: MONO }}>
-            <div style={{ fontSize: 11, color: C.sub }}>이번 세션</div>
-            <div style={{ fontSize: 22 }}>{stats.count}<span style={{ color: C.sub, fontSize: 13 }}>문제</span></div>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 16 }}>
+            {view === "practice" && (
+              <button onClick={() => setView("saved")}
+                style={{ ...btn(C.line, C.text, C.surface), alignSelf: "center" }}>
+                <Bookmark size={15} /> 저장한 질문 {saved.length > 0 ? saved.length : ""}
+              </button>
+            )}
+            <div style={{ textAlign: "right", fontFamily: MONO }}>
+              <div style={{ fontSize: 11, color: C.sub }}>이번 세션</div>
+              <div style={{ fontSize: 22 }}>{stats.count}<span style={{ color: C.sub, fontSize: 13 }}>문제</span></div>
+            </div>
           </div>
         </header>
 
+        {view === "saved" && (
+          <SavedView saved={saved} topics={topics} onDelete={removeFromSaved} onBack={() => setView("practice")} />
+        )}
+
+        {view === "practice" && (<>
         {/* 주제 선택 */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
           {topics.map((t) => {
@@ -243,12 +300,21 @@ export default function App() {
           </div>
         ) : (
           <div style={{ background: C.surface, border: `1px solid ${C.line}`, borderRadius: 12, padding: 22 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, fontFamily: MONO, fontSize: 11 }}>
-              <span style={{ color: activeColor }}>{activeLabel}</span>
-              <span style={{ color: C.line }}>|</span>
-              <span style={{ color: C.sub }}>
-                {question.source === "ai" ? "AI 생성" : "기본 세트"} · 난이도 {question.difficulty}
-              </span>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 12, fontFamily: MONO, fontSize: 11 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ color: activeColor }}>{activeLabel}</span>
+                <span style={{ color: C.line }}>|</span>
+                <span style={{ color: C.sub }}>
+                  {question.source === "ai" ? "AI 생성" : "기본 세트"} · 난이도 {question.difficulty}
+                </span>
+              </div>
+              <button onClick={toggleSave} title={savedIds.has(question.id) ? "저장 해제" : "저장"}
+                style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "transparent",
+                  border: "none", cursor: "pointer", fontFamily: MONO, fontSize: 12,
+                  color: savedIds.has(question.id) ? C.amber : C.sub }}>
+                {savedIds.has(question.id) ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}
+                {savedIds.has(question.id) ? "저장됨" : "저장"}
+              </button>
             </div>
             <p style={{ fontSize: 17, lineHeight: 1.6 }}>{question.text}</p>
 
@@ -329,6 +395,7 @@ export default function App() {
             )}
           </div>
         )}
+        </>)}
 
         {error && (
           <div style={{ marginTop: 14, background: C.red + "1A", border: `1px solid ${C.red}55`, color: C.red, borderRadius: 8, padding: "10px 14px", fontSize: 14 }}>
@@ -384,4 +451,90 @@ function btn(border: string, fg: string, bg: string): React.CSSProperties {
     background: bg === "transparent" ? "transparent" : bg, color: fg,
     cursor: "pointer",
   };
+}
+
+// 저장한 질문 목록 화면 (난이도별 필터 + 복습)
+function SavedView({ saved, topics, onDelete, onBack }: {
+  saved: SavedQuestion[];
+  topics: Topic[];
+  onDelete: (id: string) => void;
+  onBack: () => void;
+}) {
+  const [filter, setFilter] = useState<"전체" | Difficulty>("전체");
+  const labelOf = (id: string) => topics.find((t) => t.id === id)?.label ?? id;
+  const list = filter === "전체" ? saved : saved.filter((s) => s.difficulty === filter);
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
+        <button onClick={onBack} style={btn(C.line, C.text, C.surface)}>
+          <ArrowLeft size={15} /> 연습으로
+        </button>
+        <span style={{ fontFamily: MONO, fontSize: 12, color: C.sub }}>저장한 질문 {saved.length}개</span>
+      </div>
+
+      {/* 난이도 필터 */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 18, flexWrap: "wrap" }}>
+        <span style={{ fontFamily: MONO, fontSize: 12, color: C.sub, marginRight: 4 }}>난이도</span>
+        {SAVED_FILTERS.map((f) => {
+          const on = f.key === filter;
+          const count = f.key === "전체" ? saved.length : saved.filter((s) => s.difficulty === f.key).length;
+          return (
+            <button key={f.key} onClick={() => setFilter(f.key)}
+              style={{
+                fontFamily: MONO, fontSize: 13, padding: "6px 14px", borderRadius: 8,
+                border: `1px solid ${on ? f.color : C.line}`,
+                background: on ? f.color + "22" : "transparent",
+                color: on ? f.color : C.sub, cursor: "pointer",
+              }}>
+              {f.key} {count}
+            </button>
+          );
+        })}
+      </div>
+
+      {list.length === 0 ? (
+        <div style={{ border: `1px dashed ${C.line}`, borderRadius: 12, padding: "44px 20px", textAlign: "center", color: C.sub }}>
+          <Bookmark size={26} style={{ margin: "0 auto 10px", opacity: 0.6 }} />
+          <div>{saved.length === 0 ? "아직 저장한 질문이 없어요." : "이 난이도로 저장한 질문이 없어요."}</div>
+          {saved.length === 0 && (
+            <div style={{ fontSize: 13, marginTop: 4 }}>
+              질문 카드의 <span style={{ color: C.amber }}>저장</span> 버튼으로 담아두면 여기서 복습할 수 있어요.
+            </div>
+          )}
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {list.map((s) => (
+            <SavedCard key={s.id} item={s} label={labelOf(s.topic)} onDelete={() => onDelete(s.id)} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SavedCard({ item, label, onDelete }: { item: SavedQuestion; label: string; onDelete: () => void }) {
+  const [open, setOpen] = useState(false);
+  const col = TOPIC_COLORS[item.topic] ?? C.amber;
+  return (
+    <div style={{ background: C.surface, border: `1px solid ${C.line}`, borderRadius: 12, padding: 18 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, fontFamily: MONO, fontSize: 11 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ color: col }}>{label}</span>
+          <span style={{ color: C.line }}>|</span>
+          <span style={{ color: C.sub }}>난이도 {item.difficulty}</span>
+        </div>
+        <button onClick={onDelete} title="삭제"
+          style={{ display: "inline-flex", background: "transparent", border: "none", cursor: "pointer", color: C.sub }}>
+          <Trash2 size={16} />
+        </button>
+      </div>
+      <p style={{ fontSize: 16, lineHeight: 1.6, margin: 0 }}>{item.text}</p>
+      <button onClick={() => setOpen((v) => !v)} style={{ ...btn(C.blue, C.blue, "transparent"), marginTop: 12 }}>
+        <Eye size={15} /> 모범답안 {open ? "접기" : "보기"}
+      </button>
+      {open && <AnswerBlock title="모범답안" color={C.blue} text={item.modelAnswer} bg={C.bg} />}
+    </div>
+  );
 }

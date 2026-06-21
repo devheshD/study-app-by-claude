@@ -2,3 +2,4 @@ node_modules
 dist
 .env
 data/history.jsonl
+data/saved.json

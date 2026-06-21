@@ -23,6 +23,15 @@ export interface GradeResult {
 
 export type SelfRating = "got" | "unsure" | "missed";
 
+export interface SavedQuestion {
+  id: string;
+  topic: string;
+  difficulty: string;
+  text: string;
+  modelAnswer: string;
+  savedAt: string;
+}
+
 async function req<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, {
     headers: { "Content-Type": "application/json" },
@@ -67,3 +76,21 @@ export const saveProgress = (topic: string, questionId: string, rating: SelfRati
     method: "POST",
     body: JSON.stringify({ topic, questionId, rating }),
   });
+
+// 저장한 질문 (복습용, 무료) — 목록/저장/해제
+export const getSaved = () => req<SavedQuestion[]>("/api/saved");
+
+export const saveQuestion = (q: {
+  topic: string;
+  id: string;
+  difficulty: string;
+  text: string;
+  modelAnswer: string;
+}) =>
+  req<SavedQuestion[]>("/api/saved", {
+    method: "POST",
+    body: JSON.stringify(q),
+  });
+
+export const deleteSaved = (id: string) =>
+  req<SavedQuestion[]>(`/api/saved/${encodeURIComponent(id)}`, { method: "DELETE" });

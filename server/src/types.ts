@@ -28,6 +28,16 @@ export type SelfRating = "got" | "unsure" | "missed";
 export type Difficulty = "쉬움" | "중간" | "어려움";
 export const DIFFICULTIES: Difficulty[] = ["쉬움", "중간", "어려움"];
 
+// 저장한 질문 (복습용). 출처(기본/AI)와 무관하게 질문 전체를 보관한다.
+export interface SavedQuestion {
+  id: string;
+  topic: string;
+  difficulty: string;
+  text: string;
+  modelAnswer: string;
+  savedAt: string; // ISO 8601
+}
+
 // 학습 이력 (history.jsonl 한 줄)
 // kind=self → rating, kind=ai → score
 export interface HistoryEntry {

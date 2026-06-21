@@ -2,7 +2,7 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { TOPICS, SelfRating, Difficulty, DIFFICULTIES } from "./types.js";
-import { loadQuestions, appendHistory, readHistory } from "./store.js";
+import { loadQuestions, appendHistory, readHistory, readSaved, saveQuestion, removeSaved } from "./store.js";
 import { generateQuestion, gradeAnswer } from "./claude.js";
 
 const app = express();
@@ -115,6 +115,47 @@ app.get(
   "/api/history",
   wrap(async (_req, res) => {
     res.json(await readHistory());
+  })
+);
+
+// 저장한 질문 목록 (복습용)
+app.get(
+  "/api/saved",
+  wrap(async (_req, res) => {
+    res.json(await readSaved());
+  })
+);
+
+// 질문 저장
+app.post(
+  "/api/saved",
+  wrap(async (req, res) => {
+    const { topic, id, difficulty, text, modelAnswer } = req.body as {
+      topic: string;
+      id: string;
+      difficulty: string;
+      text: string;
+      modelAnswer: string;
+    };
+    if (!topicLabel(topic)) return res.status(400).json({ error: "알 수 없는 주제입니다." });
+    if (!id || !text?.trim()) return res.status(400).json({ error: "저장할 질문 정보가 부족합니다." });
+    const saved = await saveQuestion({
+      id,
+      topic,
+      difficulty: difficulty ?? "중간",
+      text,
+      modelAnswer: modelAnswer ?? "",
+      savedAt: new Date().toISOString(),
+    });
+    res.json(saved);
+  })
+);
+
+// 질문 저장 해제
+app.delete(
+  "/api/saved/:id",
+  wrap(async (req, res) => {
+    res.json(await removeSaved(req.params.id));
   })
 );
 
