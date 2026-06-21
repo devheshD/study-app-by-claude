@@ -144,7 +144,7 @@ export default function App() {
             <div style={{ color: C.amber, fontFamily: MONO, fontSize: 12, letterSpacing: 2 }}>
               TECH&nbsp;INTERVIEW&nbsp;//&nbsp;연습실
             </div>
-            <h1 style={{ fontSize: 28, fontWeight: 700, marginTop: 4 }}>면접 질문 도장깨기</h1>
+            <h1 style={{ fontSize: 28, fontWeight: 700, marginTop: 4 }}>기술 스택 학습</h1>
           </div>
           <div style={{ textAlign: "right", fontFamily: MONO }}>
             <div style={{ fontSize: 11, color: C.sub }}>이번 세션</div>
