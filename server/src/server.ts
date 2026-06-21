@@ -33,7 +33,7 @@ app.get(
 app.post(
   "/api/questions/generate",
   wrap(async (req, res) => {
-    const { topic } = req.body as { topic: string };
+    const { topic, exclude } = req.body as { topic: string; exclude?: string[] };
     const label = topicLabel(topic);
     if (!label) return res.status(400).json({ error: "알 수 없는 주제입니다." });
     if (!process.env.ANTHROPIC_API_KEY) {
@@ -42,7 +42,9 @@ app.post(
       });
     }
 
-    const existing = (await loadQuestions(topic)).map((q) => q.text);
+    // 기본 질문 + 이미 받은 AI 질문(exclude)을 합쳐 중복 회피 목록을 만든다.
+    const bank = (await loadQuestions(topic)).map((q) => q.text);
+    const existing = [...bank, ...(Array.isArray(exclude) ? exclude : [])];
     const g = await generateQuestion(label, existing);
     res.json({
       id: `${topic}-ai-${Date.now()}`,

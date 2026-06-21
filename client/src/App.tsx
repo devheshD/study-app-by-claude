@@ -44,6 +44,8 @@ export default function App() {
   const [loading, setLoading] = useState<Loading>(null);
   const [error, setError] = useState("");
   const [stats, setStats] = useState({ count: 0 });
+  // 이미 받은 AI 질문 텍스트 — 같은 문제 반복 방지용으로 서버에 넘긴다.
+  const [aiSeen, setAiSeen] = useState<string[]>([]);
 
   const activeColor = TOPIC_COLORS[topic] ?? C.amber;
   const activeLabel = useMemo(
@@ -61,6 +63,7 @@ export default function App() {
     if (!topic) return;
     resetTo(null);
     setBankIdx(-1);
+    setAiSeen([]);
     getQuestions(topic)
       .then(setBank)
       .catch((e) => setError(`질문을 불러오지 못했어요: ${e.message}`));
@@ -85,7 +88,8 @@ export default function App() {
     setLoading("gen");
     setError("");
     try {
-      const q = await generateQuestion(topic);
+      const q = await generateQuestion(topic, aiSeen);
+      setAiSeen((prev) => [...prev, q.text]);
       resetTo({ ...q, source: "ai" });
     } catch (e: any) {
       setError(`질문 생성에 실패했어요: ${e.message}`);

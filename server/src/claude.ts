@@ -45,6 +45,7 @@ export async function generateQuestion(
   const message = await client.messages.create({
     model: MODEL,
     max_tokens: 1000,
+    temperature: 1, // 매번 새 질문이 나오도록 다양성 ↑
     messages: [{ role: "user", content: prompt }],
   });
   return parseJSON<GeneratedQuestion>(extractText(message));
