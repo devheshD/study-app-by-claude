@@ -54,7 +54,7 @@ cd client && npm run dev     # 터미널 2
 ## 질문 추가/수정
 `server/data/questions/<주제>.json` 에 항목 추가:
 ```json
-{ "id": "kafka-09", "difficulty": "보통", "text": "질문 내용", "modelAnswer": "모범답안" }
+{ "id": "kafka-09", "difficulty": "쉬움|중간|어려움", "text": "질문 내용", "modelAnswer": "모범답안" }
 ```
 
 ## API

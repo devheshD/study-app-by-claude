@@ -33,14 +33,20 @@ export interface GeneratedQuestion {
 // 주제로 새 면접 질문 1개 생성 (모범답안 포함). existing은 중복 회피용.
 export async function generateQuestion(
   topicLabel: string,
-  existing: string[]
+  existing: string[],
+  difficulty: string = "중간"
 ): Promise<GeneratedQuestion> {
+  const guide: Record<string, string> = {
+    쉬움: "기초 개념을 묻는 쉬운 질문으로",
+    중간: "실무에서 자주 쓰이는 보통 난이도로",
+    어려움: "꼬리질문이 가능한 깊이 있는 어려운 질문으로",
+  };
   const prompt = `당신은 백엔드 기술 면접관입니다. "${topicLabel}" 주제로 실무형 기술 면접 질문을 1개 만들어 주세요.
-- 너무 쉽지 않고, 꼬리질문이 가능한 깊이 있는 질문으로
+- 난이도는 "${difficulty}": ${guide[difficulty] ?? guide["중간"]}
 - 아래 질문들과는 겹치지 않게: ${existing.join(" / ")}
 - 모범답안은 핵심만 3~5문장으로 간결하게
 반드시 아래 JSON 형식으로만, 다른 텍스트 없이 응답하세요:
-{"question": "질문 내용", "difficulty": "쉬움|보통|어려움", "modelAnswer": "모범답안"}`;
+{"question": "질문 내용", "difficulty": "${difficulty}", "modelAnswer": "모범답안"}`;
 
   const message = await client.messages.create({
     model: MODEL,

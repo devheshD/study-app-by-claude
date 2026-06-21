@@ -28,6 +28,13 @@ const RATINGS: { key: SelfRating; label: string; color: string; icon: React.Reac
   { key: "missed", label: "몰랐음", color: C.red, icon: <ThumbsDown size={15} /> },
 ];
 
+type Difficulty = "쉬움" | "중간" | "어려움";
+const DIFFICULTIES: { key: Difficulty; color: string }[] = [
+  { key: "쉬움", color: C.green },
+  { key: "중간", color: C.amber },
+  { key: "어려움", color: C.red },
+];
+
 type Loading = "gen" | "grade" | null;
 // idle: 답 작성 중 / revealed: 모범답안 펼침 / graded: AI 채점 결과
 type Phase = "idle" | "revealed" | "graded";
@@ -44,8 +51,15 @@ export default function App() {
   const [loading, setLoading] = useState<Loading>(null);
   const [error, setError] = useState("");
   const [stats, setStats] = useState({ count: 0 });
+  const [difficulty, setDifficulty] = useState<Difficulty>("쉬움");
   // 이미 받은 AI 질문 텍스트 — 같은 문제 반복 방지용으로 서버에 넘긴다.
   const [aiSeen, setAiSeen] = useState<string[]>([]);
+
+  // 선택한 난이도의 기본 질문만 추린다.
+  const filteredBank = useMemo(
+    () => bank.filter((q) => q.difficulty === difficulty),
+    [bank, difficulty]
+  );
 
   const activeColor = TOPIC_COLORS[topic] ?? C.amber;
   const activeLabel = useMemo(
@@ -77,18 +91,24 @@ export default function App() {
     setError("");
   }
 
+  // 난이도를 바꾸면 진행 중인 문제를 비우고 처음부터 다시 받게 한다.
+  useEffect(() => {
+    resetTo(null);
+    setBankIdx(-1);
+  }, [difficulty]);
+
   function nextFromBank() {
-    if (!bank.length) return;
-    const idx = (bankIdx + 1) % bank.length;
+    if (!filteredBank.length) return;
+    const idx = (bankIdx + 1) % filteredBank.length;
     setBankIdx(idx);
-    resetTo({ ...bank[idx], source: "bank" });
+    resetTo({ ...filteredBank[idx], source: "bank" });
   }
 
   async function onGenerate() {
     setLoading("gen");
     setError("");
     try {
-      const q = await generateQuestion(topic, aiSeen);
+      const q = await generateQuestion(topic, aiSeen, difficulty);
       setAiSeen((prev) => [...prev, q.text]);
       resetTo({ ...q, source: "ai" });
     } catch (e: any) {
@@ -175,6 +195,25 @@ export default function App() {
           })}
         </div>
 
+        {/* 난이도 선택 */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
+          <span style={{ fontFamily: MONO, fontSize: 12, color: C.sub, marginRight: 4 }}>난이도</span>
+          {DIFFICULTIES.map((d) => {
+            const on = d.key === difficulty;
+            return (
+              <button key={d.key} onClick={() => setDifficulty(d.key)}
+                style={{
+                  fontFamily: MONO, fontSize: 13, padding: "6px 14px", borderRadius: 8,
+                  border: `1px solid ${on ? d.color : C.line}`,
+                  background: on ? d.color + "22" : "transparent",
+                  color: on ? d.color : C.sub, cursor: "pointer",
+                }}>
+                {d.key}
+              </button>
+            );
+          })}
+        </div>
+
         {/* 질문 받기 */}
         <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
           <button onClick={nextFromBank} style={btn(C.line, C.text, C.surface)}>
@@ -185,8 +224,10 @@ export default function App() {
             AI 새 질문 생성
           </button>
           {bank.length > 0 && !question && (
-            <span style={{ fontFamily: MONO, fontSize: 12, color: C.sub, alignSelf: "center" }}>
-              {activeLabel} · 총 {bank.length}문제
+            <span style={{ fontFamily: MONO, fontSize: 12, color: filteredBank.length ? C.sub : C.amber, alignSelf: "center" }}>
+              {filteredBank.length
+                ? `${activeLabel} · ${difficulty} ${filteredBank.length}문제`
+                : `'${difficulty}' 기본 질문이 없어요 — AI 새 질문을 써보세요`}
             </span>
           )}
         </div>

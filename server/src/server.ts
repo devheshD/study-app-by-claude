@@ -1,7 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import { TOPICS, SelfRating } from "./types.js";
+import { TOPICS, SelfRating, Difficulty, DIFFICULTIES } from "./types.js";
 import { loadQuestions, appendHistory, readHistory } from "./store.js";
 import { generateQuestion, gradeAnswer } from "./claude.js";
 
@@ -33,7 +33,11 @@ app.get(
 app.post(
   "/api/questions/generate",
   wrap(async (req, res) => {
-    const { topic, exclude } = req.body as { topic: string; exclude?: string[] };
+    const { topic, exclude, difficulty } = req.body as {
+      topic: string;
+      exclude?: string[];
+      difficulty?: string;
+    };
     const label = topicLabel(topic);
     if (!label) return res.status(400).json({ error: "알 수 없는 주제입니다." });
     if (!process.env.ANTHROPIC_API_KEY) {
@@ -42,14 +46,15 @@ app.post(
       });
     }
 
+    const level = DIFFICULTIES.includes(difficulty as Difficulty) ? (difficulty as Difficulty) : "중간";
     // 기본 질문 + 이미 받은 AI 질문(exclude)을 합쳐 중복 회피 목록을 만든다.
     const bank = (await loadQuestions(topic)).map((q) => q.text);
     const existing = [...bank, ...(Array.isArray(exclude) ? exclude : [])];
-    const g = await generateQuestion(label, existing);
+    const g = await generateQuestion(label, existing, level);
     res.json({
       id: `${topic}-ai-${Date.now()}`,
       text: g.question,
-      difficulty: g.difficulty ?? "보통",
+      difficulty: g.difficulty ?? level,
       modelAnswer: g.modelAnswer ?? "",
     });
   })

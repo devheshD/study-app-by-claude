@@ -42,10 +42,11 @@ export const getQuestions = (topic: string) =>
 
 // AI 새 질문 생성 (모범답안 포함) — API 키 필요
 // exclude: 이미 받은 질문 텍스트들. 같은 질문이 반복되지 않게 서버로 넘긴다.
-export const generateQuestion = (topic: string, exclude: string[] = []) =>
+// difficulty: 요청 난이도(쉬움/중간/어려움).
+export const generateQuestion = (topic: string, exclude: string[] = [], difficulty?: string) =>
   req<Question>("/api/questions/generate", {
     method: "POST",
-    body: JSON.stringify({ topic, exclude }),
+    body: JSON.stringify({ topic, exclude, difficulty }),
   });
 
 // AI 채점 — API 키 필요
