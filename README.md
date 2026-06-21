@@ -50,19 +50,3 @@ cd client && npm run dev     # 터미널 2
 | Opus 4.8 | `claude-opus-4-8` | $5 | $25 | 최고 품질 |
 
 채점/생성 1회는 입력·출력 합쳐 대략 1~2천 토큰 수준이라, Haiku 기준 1회당 1센트 안팎입니다. 더 깊이 있는 피드백이 필요하면 Sonnet이나 Opus로 올리면 됩니다.
-
-## 질문 추가/수정
-`server/data/questions/<주제>.json` 에 항목 추가:
-```json
-{ "id": "kafka-09", "difficulty": "쉬움|중간|어려움", "text": "질문 내용", "modelAnswer": "모범답안" }
-```
-
-## API
-| 메서드 | 경로 | 설명 | 키 |
-|---|---|---|---|
-| GET | `/api/topics` | 주제 목록 | - |
-| GET | `/api/questions/:topic` | 질문 + 모범답안 | - |
-| POST | `/api/progress` | 자기평가 기록 `{topic, questionId, rating}` | - |
-| POST | `/api/questions/generate` | AI 새 질문 생성 `{topic}` | 필요 |
-| POST | `/api/answers/grade` | AI 채점 `{topic, questionId, question, answer}` | 필요 |
-| GET | `/api/history` | 학습 이력 | - |
