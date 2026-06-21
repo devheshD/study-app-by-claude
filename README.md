@@ -1,6 +1,6 @@
-# 면접 질문 도장깨기
+# 기술 스택 학습하기
 
-백엔드 기술 면접(Kotlin / Java / Spring / Elasticsearch / MySQL / Kafka) 연습용 스터디 앱.
+백엔드 기술 스택(Kotlin / Java / Spring / Elasticsearch / MySQL / Kafka) 연습용 스터디 앱.
 답을 적은 뒤 **모범답안과 비교**(무료)하거나 **AI 채점**(API)을 받을 수 있습니다.
 
 - **server** — Node + TypeScript (Express). 질문·모범답안은 로컬 JSON, 이력은 JSONL에 저장. AI 채점/생성은 Claude 호출.
