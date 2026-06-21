@@ -5,9 +5,9 @@ const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-// 채점/생성에는 비용 효율이 좋은 Sonnet을 사용
-// 더 저렴하게 쓰려면 "claude-haiku-4-5-20251001" 로 바꾸세요.
-const MODEL = "claude-sonnet-4-6";
+// 채점/생성에는 비용 효율이 좋은 Haiku를 사용
+// 더 높은 품질이 필요하면 "claude-sonnet-4-6" 로 바꾸세요.
+const MODEL = "claude-haiku-4-5-20251001";
 
 function extractText(message: Anthropic.Message): string {
   return message.content.map((b) => (b.type === "text" ? b.text : "")).join("");
